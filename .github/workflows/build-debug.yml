@@ -1,0 +1,38 @@
+name: prepare-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-type:
+        type: choice
+        description: Type of Build
+        options:
+          - release
+          - hotfix
+      version-name:
+        type: string
+        required: true
+
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  Create-Pull-Request:
+    runs-on: [ android-actions ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Update Version Name
+        run: |
+          gsed -i 's/val currentProductionVersionName.*"/val currentProductionVersionName = "${{ github.event.inputs.version-name }}"/g' ${{ github.workspace }}/app/build.gradle.kts
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        env:
+          ROBOT_PAT_CREATE_PULL_REQUEST: ${{ secrets.ROBOT_PAT_CREATE_PULL_REQUEST }}
+        with:
+          branch: ${{ github.event.inputs.build-type }}/${{ github.event.inputs.version-name }}
+          delete-branch: false
+          base: master
+          token: ${{ secrets.ROBOT_PAT_CREATE_PULL_REQUEST }}
+          title: ${{ github.event.inputs.build-type }} ${{ github.event.inputs.version-name }} -> MASTER

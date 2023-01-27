@@ -1,0 +1,21 @@
+name: builds-integration
+
+on:
+  push:
+    branches:
+      - develop
+
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  Test:
+    runs-on: [ android-actions ]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run ktLint
+        env:
+          JAVA_HOME: /Library/Java/JavaVirtualMachines/temurin-11.jdk/Contents/Home
+        run: ./gradlew ktlintCheck --warning-mode=none
